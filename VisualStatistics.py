@@ -1,35 +1,38 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 
-# Load the data from the saved file (labeled_headlines.json or structured_labeled_headlines.csv)
-df_labels = pd.read_csv("structured_labeled_headlines.csv")  # Or use labeled_headlines.json
+# Load your labeled data
+file_path = "structured_labeled_headlines.csv"
+if not os.path.exists(file_path):
+    raise FileNotFoundError(f"File '{file_path}' not found. Please ensure the classification step has completed.")
 
-# Setting up Seaborn style for plots
+# Read the CSV
+df = pd.read_csv(file_path)
+
+# Set style for better visuals
 sns.set(style="whitegrid")
+plt.rcParams.update({'font.size': 12})
 
-# Function to create bar plots
-def plot_label_distribution(df, label_column, title, filename):
-    plt.figure(figsize=(10, 6))
+# Function to plot label distribution
+def plot_label_distribution(label_column, title, color_palette):
     label_counts = df[label_column].value_counts()
-    
-    # Create a bar plot
-    sns.barplot(x=label_counts.index, y=label_counts.values, palette="viridis")
-    
-    # Title and labels
-    plt.title(title, fontsize=16)
-    plt.xlabel(label_column, fontsize=12)
-    plt.ylabel("Count", fontsize=12)
-    
-    # Rotate x-axis labels for better readability
+
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x=label_counts.index, y=label_counts.values, hue=label_counts.index, palette=color_palette, legend=False)
+    plt.title(f"{title}", fontsize=16)
+    plt.ylabel("Number of Headlines")
+    plt.xlabel(label_column.capitalize())
     plt.xticks(rotation=45)
-    
-    # Save the plot as an image
     plt.tight_layout()
-    plt.savefig(f"{filename}.png")
     plt.show()
 
-# Plot distributions for Topic, Tone, and Frame
-plot_label_distribution(df_labels, 'topic', 'Distribution of Topics', 'topic_distribution')
-plot_label_distribution(df_labels, 'tone', 'Distribution of Tones', 'tone_distribution')
-plot_label_distribution(df_labels, 'frame', 'Distribution of Frames', 'frame_distribution')
+# 🔵 Topic Distribution
+plot_label_distribution("topic", "🧠 Topic Distribution", "mako")
+
+# 🟢 Tone Distribution
+plot_label_distribution("tone", "🎭 Tone Distribution", "crest")
+
+# 🟣 Frame Distribution
+plot_label_distribution("frame", "🧱 Frame Distribution", "viridis")
