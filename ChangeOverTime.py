@@ -1,81 +1,78 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
+import seaborn as sns
+import os
 
-# Read the labeled headlines data
-df = pd.read_csv("labeled_with_dates.csv")
+# Load your labeled data with dates
+file_path = "labeled_with_dates.csv"
+if not os.path.exists(file_path):
+    raise FileNotFoundError(f"File '{file_path}' not found. Please ensure the labeled data with dates is available.")
 
-# Ensure the 'date' column exists
-if 'date' not in df.columns:
-    print("WARNING: No 'date' column found in your CSV. Make sure your original classification script included dates.")
-    exit()
+# Read the CSV
+df = pd.read_csv(file_path)
 
 # Convert 'date' to datetime format and create a 'day' column
 df["date"] = pd.to_datetime(df["date"], errors="coerce")
 df["day"] = df["date"].dt.date
 
-# Check for missing or NaN values in tone and frame columns
+# Check for missing tone values
 print("Missing tone values:", df["tone"].isna().sum())
-print("Missing frame values:", df["frame"].isna().sum())
-
-# Check unique values for tone and frame
 print("Unique tone values:", df["tone"].unique())
-print("Unique frame values:", df["frame"].unique())
 
-# Drop rows with missing tone or frame values
-df = df.dropna(subset=["tone", "frame"])
+# Drop rows with missing tone values
+df = df.dropna(subset=["tone"])
 
-# Plot the trends of categories over time
-def plot_category_trends(col_name, title):
-    plt.figure(figsize=(12, 6))
+# Set style for better visuals
+sns.set(style="whitegrid")
+plt.rcParams.update({'font.size': 12})
+
+# Function to plot label distribution
+def plot_label_distribution(label_column, title, color_palette):
+    label_counts = df[label_column].value_counts()
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x=label_counts.index, y=label_counts.values, hue=label_counts.index, palette=color_palette, legend=False)
+    plt.title(f"{title}", fontsize=16)
+    plt.ylabel("Number of Headlines")
+    plt.xlabel(label_column.capitalize())
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()  # Display the plot
+
+# Function to plot time series distribution
+def plot_time_series_distribution(label_column, title, color_palette):
+    # Group data by label and day
+    trend_data = df.groupby([label_column, "day"]).size().reset_index(name="count")
     
-    # Group data by the category and day
-    trend_data = df.groupby([col_name, "day"]).size().reset_index(name="count")
-    
-    # Debug: Check the grouped data
-    print("\nGrouped " + str(col_name) + " data:")
-    print(trend_data.head())
-    
-    # If no data is available for this category, skip plotting
+    # If no data is available, exit the function
     if trend_data.empty:
-        print("No data available for " + str(col_name))
+        print(f"No {label_column} data available")
         return
     
-    # Pivot the data to create columns for each category
-    trend_data_pivot = trend_data.pivot(index="day", columns=col_name, values="count").fillna(0)
-    
-    # Check the pivoted data
-    print("\nPivoted data for " + str(col_name) + ":")
-    print(trend_data_pivot.head())
+    # Pivot the data to create columns for each label value
+    data_pivot = trend_data.pivot(index="day", columns=label_column, values="count").fillna(0)
+    print(f"\nPivoted data for {label_column}:")
+    print(data_pivot.head())
     
     # Plot the data
-    if not trend_data_pivot.empty:
-        ax = trend_data_pivot.plot(kind="line", marker="o", figsize=(12, 6))
-        plt.title(title + " Over Time")
-        plt.ylabel("Count")
-        plt.xlabel("Day")
-        plt.xticks(rotation=45)
-        plt.legend(title=col_name)
-        plt.grid(True, linestyle='--', alpha=0.7)
-        plt.tight_layout()
-        
-        # Save the plot to a file
-        plt.savefig(str(col_name) + "_distribution_over_time.png")
-        print("Plot saved as " + str(col_name) + "_distribution_over_time.png")
-        
-        # Show the plot
-        plt.show()
-    else:
-        print("No data to plot for " + str(col_name))
+    plt.figure(figsize=(12, 6))
+    data_pivot.plot(kind="line", marker="o", figsize=(12, 6), colormap=color_palette)
+    plt.title(f"{title}", fontsize=16)
+    plt.ylabel("Count")
+    plt.xlabel("Day")
+    plt.xticks(rotation=45)
+    plt.legend(title=label_column.capitalize())
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    plt.show()  # Display the plot
 
-# Plot the Topic, Tone, and Frame distributions over time
-print("\n=== Plotting Topic Distribution ===")
-plot_category_trends("topic", "Topic Distribution")
+# 🔵 Topic Distribution
+plot_label_distribution("topic", "🧠 Topic Distribution", "mako")
 
-print("\n=== Plotting Tone Distribution ===")
-plot_category_trends("tone", "Tone Distribution")
+# 🟢 Tone Distribution
+plot_label_distribution("tone", "🎭 Tone Distribution", "crest")
 
-print("\n=== Plotting Frame Distribution ===")
-plot_category_trends("frame", "Frame Distribution")
+# 🟣 Frame Distribution
+plot_label_distribution("frame", "🧱 Frame Distribution", "viridis")
 
-print("\nAnalysis complete! Check the current directory for saved plot images.")
+# 📊 Time Series Distribution for Tone
+plot_time_series_distribution("tone", "🎭 Tone Distribution Over Time", "crest")
